@@ -220,6 +220,35 @@ def main():
                                          flag_use_pagn=opts.flag_use_pagn,
                                          verbose=opts.verbose
                                          )
+    # Hacky pAGN fix: use surface density value at 12.1 r_g for radii below that
+    # pAGN is unreliable below 12.1 r_g and returns NaN there
+    if opts.flag_use_pagn:
+        _old_interp = disk_surface_density
+        def disk_surface_density(x):
+            import numpy as np
+            x = np.atleast_1d(x)
+            mask = x > 12.1
+            out = np.full(x.size, _old_interp(np.asarray([12.1]))[0])
+            if mask.any():
+                out[mask] = _old_interp(x[mask])
+            return out
+        
+        _old_opacity = disk_opacity
+        def disk_opacity(x):
+            x = np.atleast_1d(x)
+            mask = x > 12.1
+            out = np.full(x.size, _old_opacity(np.asarray([12.1]))[0])
+            if mask.any():
+                out[mask] = _old_opacity(x[mask])
+            return out
+        _old_aspect = disk_aspect_ratio
+        def disk_aspect_ratio(x):
+            x = np.atleast_1d(x)
+            mask = x > 12.1
+            out = np.full(x.size, _old_aspect(np.asarray([12.1]))[0])
+            if mask.any():
+                out[mask] = _old_aspect(x[mask])
+            return out
 
     # BH file save names
     basename_mergers, extension = os.path.splitext(opts.fname_output_mergers)
@@ -1050,6 +1079,15 @@ def main():
             #   note this is dyn friction only, not true 'migration'
             # change retrograde eccentricity (some damping, some pumping)
             # damp orbital inclination
+
+            # DEBUG: track max retrograde eccentricity
+            print(f"DEBUG timestep={timestep_current_num} max_retro_ecc={np.max(blackholes_retro.orb_ecc):.6f} n_retro={len(blackholes_retro.orb_ecc)}")
+            # Eject retrograde BHs on hyperbolic orbits (ecc >= 1), same as prograde
+            bh_retro_id_num_ecc_hyperbolic = blackholes_retro.id_num[blackholes_retro.orb_ecc >= 0.999]
+            if bh_retro_id_num_ecc_hyperbolic.size > 0:
+                blackholes_retro.remove_id_num(bh_retro_id_num_ecc_hyperbolic)
+                filing_cabinet.remove_id_num(bh_retro_id_num_ecc_hyperbolic)
+                
             blackholes_retro.orb_ecc, blackholes_retro.orb_a, blackholes_retro.orb_inc = disk_capture.retro_bh_orb_disk_evolve(
                 opts.smbh_mass,
                 blackholes_retro.mass,

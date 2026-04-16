@@ -644,6 +644,19 @@ def tau_ecc_dyn_optimized(smbh_mass, disk_bh_retro_orbs_a, disk_bh_retro_masses,
     # call out to Rust helper fn
     tau_e_dyn, tau_a_dyn = tau_ecc_dyn_helper(smbh_mass, retro_mass, ecc, inc, omega, disk_surf_res, semi_maj_axis)
 
+    # DEBUG
+    if not np.isfinite(tau_e_dyn).all():
+        bad = ~np.isfinite(tau_e_dyn)
+        print(f"DEBUG tau_e_dyn non-finite at indices: {np.where(bad)}")
+        print(f"  tau_e_dyn[bad]      = {tau_e_dyn[bad]}")
+        print(f"  smbh_mass           = {smbh_mass}")
+        print(f"  retro_mass[bad]     = {retro_mass[bad]}")
+        print(f"  ecc[bad]            = {ecc[bad]}")
+        print(f"  inc[bad]            = {inc[bad]}")
+        print(f"  omega[bad]          = {omega[bad]}")
+        print(f"  disk_surf_res[bad]  = {disk_surf_res[bad]}")
+        print(f"  semi_maj_axis[bad]  = {semi_maj_axis[bad]}")
+        
     assert np.isfinite(tau_e_dyn).all(), \
         "Finite check failure: tau_e_dyn"
     assert np.isfinite(tau_a_dyn).all(), \
