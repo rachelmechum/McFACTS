@@ -1081,7 +1081,8 @@ def main():
             # damp orbital inclination
 
             # DEBUG: track max retrograde eccentricity
-            print(f"DEBUG timestep={timestep_current_num} max_retro_ecc={np.max(blackholes_retro.orb_ecc):.6f} n_retro={len(blackholes_retro.orb_ecc)}")
+            if len(blackholes_retro.orb_ecc) > 0:
+                print(f"DEBUG timestep={timestep_current_num} max_retro_ecc={np.max(blackholes_retro.orb_ecc):.6f} n_retro={len(blackholes_retro.orb_ecc)}")
             # Eject retrograde BHs on hyperbolic orbits (ecc >= 1), same as prograde
             bh_retro_id_num_ecc_hyperbolic = blackholes_retro.id_num[blackholes_retro.orb_ecc >= 0.999]
             if bh_retro_id_num_ecc_hyperbolic.size > 0:
