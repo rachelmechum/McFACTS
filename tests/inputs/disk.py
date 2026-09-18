@@ -24,6 +24,7 @@ from mcfacts.inputs.ReadInputs import construct_disk_pAGN
 from mcfacts.inputs.ReadInputs import construct_disk_interp
 from mcfacts.inputs.settings_manager import SettingsManager
 from mcfacts.objects.disk import AGNDisk, AGNDiskInterp
+from mcfacts.modules.migration import feedback_bh_hankla
 
 ######## Setup ########
 # Taken from <https://stackoverflow.com/a/9098295/4761692>
@@ -307,10 +308,49 @@ def test_pagn_disk_object(verbose=True):
 
     if verbose:
         print("  pass!")
+
     # Loop disk models
     for disk_model_name in DISK_MODEL_NAMES:
         if verbose:
             print(disk_model_name)
+
+
+def test_pagn_disk_inner_boundary():
+    """Keep initialized objects inside the pAGN interpolation domain."""
+    settings = SettingsManager({
+        "flag_use_pagn": True,
+        "smbh_mass": 2.57e10,
+        "disk_radius_outer": 50000.0,
+        "disk_inner_stable_circ_orb": 6.0,
+    })
+
+    disko = AGNDisk(settings)
+
+    assert settings.disk_inner_stable_circ_orb > 6.0
+    radius = np.asarray([settings.disk_inner_stable_circ_orb])
+    assert np.isfinite(disko.disk_surface_density(radius)).all()
+    assert np.isfinite(disko.disk_opacity(radius)).all()
+    ratio = feedback_bh_hankla(
+        radius,
+        disko.disk_surface_density,
+        disko.disk_opacity,
+        settings.disk_bh_eddington_ratio,
+        settings.disk_alpha_viscosity,
+        settings.disk_radius_outer,
+    )
+    assert np.isfinite(ratio).all()
+
+
+def test_non_pagn_inner_boundary_unchanged():
+    settings = SettingsManager({
+        "flag_use_pagn": False,
+        "disk_inner_stable_circ_orb": 6.0,
+    })
+
+    AGNDisk(settings)
+
+    assert settings.disk_inner_stable_circ_orb == 6.0
+
 
 def test_from_settings():
     """Test calling AGNDisk objects with the settings dictionary"""

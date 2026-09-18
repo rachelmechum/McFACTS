@@ -4,6 +4,7 @@
 import contextlib
 import os
 import sys
+import warnings
 #### Third Party ####
 import numpy as np
 from astropy import units as u
@@ -268,6 +269,22 @@ class AGNDisk(AGNDiskInterp):
                 settings.disk_bh_eddington_ratio,
                 rad_efficiency=0.1, # TODO This should really be a setting
             )
+            pagn_inner_radius = float(
+                pagn_model.disk_model.R[0] / (pagn_model.disk_model.Rs / 2)
+            )
+            if settings.disk_inner_stable_circ_orb < pagn_inner_radius:
+                warnings.warn(
+                    "pAGN disk starts at "
+                    f"{pagn_inner_radius:.6g} r_g, above the configured "
+                    f"inner disk radius {settings.disk_inner_stable_circ_orb:.6g} r_g; "
+                    "using the pAGN boundary.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                settings.set_preprocessing(
+                    "disk_inner_stable_circ_orb",
+                    pagn_inner_radius,
+                )
             interp_data, bonus = pagn_model.return_disk_surf_data()
             super().__init__(*interp_data)
             self.pagn_model = pagn_model
